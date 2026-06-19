@@ -421,6 +421,24 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:2500}
       <div class="field"><label>💬 Diálogos</label><input id="cfgDialogs" type="number" min="0" /></div>
     </div>
     <div class="form">
+      <h3>⚙️ Puntuación (Scoring)</h3>
+      <div class="cfg-note">Edita cuántos puntos vale cada acción. Cambios se aplican al guardar.</div>
+      <div style="margin-top:12px">
+        <h4 style="font-family:var(--font-ui);font-weight:700;font-size:12px;letter-spacing:.5px;color:var(--gold);text-transform:uppercase;margin:8px 0">💼 Ventas</h4>
+        <div class="row2"><div class="field"><label>Llamada</label><input id="scLlamadas" type="number" min="0" step="0.1" value="0.1" /></div><div class="field"><label>Puerta</label><input id="scPuertas" type="number" min="0" step="0.1" value="0.1" /></div></div>
+        <div class="row2"><div class="field"><label>Diálogo</label><input id="scDialogs" type="number" min="0" step="0.1" value="0.1" /></div><div class="field"><label>Orient.</label><input id="scOrientaciones" type="number" min="0" step="0.5" value="0.5" /></div></div>
+        <div class="row2"><div class="field"><label>Visita</label><input id="scVisitas" type="number" min="0" step="0.5" value="1" /></div><div class="field"><label>Oport.</label><input id="scOportunidades" type="number" min="0" step="0.5" value="1.5" /></div></div>
+        <div class="row2"><div class="field"><label>Cotización</label><input id="scCotizaciones" type="number" min="0" step="0.5" value="2" /></div><div class="field"><label>Venta</label><input id="scVentas" type="number" min="0" step="1" value="10" /></div></div>
+        <div class="field"><label>Daily completado</label><input id="scDaily" type="number" min="0" step="1" value="5" /></div>
+        <h4 style="font-family:var(--font-ui);font-weight:700;font-size:12px;letter-spacing:.5px;color:var(--gold);text-transform:uppercase;margin:12px 0 8px">🌱 Bienestar</h4>
+        <div class="row2"><div class="field"><label>Correr (milla)</label><input id="scCorrer" type="number" min="0" step="0.5" value="2" /></div><div class="field"><label>Workout</label><input id="scWorkout" type="number" min="0" step="0.5" value="1" /></div></div>
+        <div class="row2"><div class="field"><label>10k pasos</label><input id="scPasos" type="number" min="0" step="0.5" value="1" /></div><div class="field"><label>Dormir 7h+</label><input id="scDormir" type="number" min="0" step="0.5" value="0.5" /></div></div>
+        <div class="row2"><div class="field"><label>Leer 10pág</label><input id="scLeer" type="number" min="0" step="0.5" value="0.5" /></div><div class="field"><label>Curso 30m</label><input id="scCurso" type="number" min="0" step="0.5" value="1" /></div></div>
+      </div>
+      <button class="btn ghost" id="resetScoringBtn" style="margin-top:10px;margin-bottom:8px">🔄 Restablecer a Defaults</button>
+      <button class="btn gold" id="saveScoringBtn" style="margin-bottom:10px">💾 Guardar Puntuación</button>
+    </div>
+    <div class="form">
       <h3>🎲 Retos Personalizados</h3>
       <div id="customList"></div>
       <div class="field"><label>Nombre del reto</label><input id="newCatName" placeholder="Ej: Tirarse en paracaídas" /></div>
@@ -536,8 +554,9 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:2500}
 const DAYS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const TOTAL_WEEKS=12;
 const FB_ROOT="apexArenaV2";
-const SCORING={llamadas:0.1,puertas:0.1,dialogs:0.1,orientaciones:0.5,visitas:1,oportunidades:1.5,cotizaciones:2,ventas:10,daily:5,
+const DEFAULT_SCORING={llamadas:0.1,puertas:0.1,dialogs:0.1,orientaciones:0.5,visitas:1,oportunidades:1.5,cotizaciones:2,ventas:10,daily:5,
   correr:2,workout:1,pasos:1,dormir:0.5,leer:0.5,curso:1};
+let SCORING=Object.assign({},DEFAULT_SCORING);
 const SALES_KEYS=["llamadas","puertas","dialogs","orientaciones","visitas","oportunidades","cotizaciones","ventas"];
 const WELL_KEYS=["correr","workout","pasos","dormir","leer","curso"];
 const GHOST_NAMES=["Tu Fantasma","Eco de la Semana 1","Sombra Pasada","Reflejo Anterior","Espectro de Bronce","Espectro de Plata","Espectro de Oro","Doble Oscuro","Versión Beta","El Otro Yo","Fantasma Élite","Némesis Final"];
@@ -647,6 +666,9 @@ function loadStateLocal(id){try{const r=localStorage.getItem("apexState_"+id);if
 function saveStateLocal(id,st){try{localStorage.setItem("apexState_"+id,JSON.stringify(st));}catch(e){}}
 function saveCustomLocal(){try{localStorage.setItem("apexCustomCats",JSON.stringify(customCategories));}catch(e){}}
 function saveCustom(){saveCustomLocal();if(fbOk&&db)db.ref(FB_ROOT+"/customCategories").set(customCategories).catch(()=>{});}
+function loadScoringLocal(){try{const s=localStorage.getItem("apexScoring");if(s)return JSON.parse(s);}catch(e){}return null;}
+function saveScoringLocal(){try{localStorage.setItem("apexScoring",JSON.stringify(SCORING));}catch(e){}}
+function saveScoring(){saveScoringLocal();if(fbOk&&db)db.ref(FB_ROOT+"/scoring").set(SCORING).catch(()=>{});}
 let saveTimer=null;
 function save(){gameState.player=(currentPlayer()||{}).name||gameState.player;allStates[currentPlayerId]=gameState;saveStateLocal(currentPlayerId,gameState);
   if(fbOk&&db){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{db.ref(FB_ROOT+"/players/"+currentPlayerId).set(gameState).then(()=>setSync(true,"Sincronizado ✓")).catch(e=>{setSync(false,"Local (error sync)");});},400);}}
@@ -777,7 +799,8 @@ function renderConfigInputs(){document.getElementById("cfgPlayer").value=current
   document.getElementById("cfgDialogs").value=gameState.dailyChallengeTargets.dialogs;
   document.getElementById("cfgOppName").value=gameState.baselineOpponent.name;
   document.getElementById("cfgOppPts").value=gameState.baselineOpponent.totalPuntos;
-  document.getElementById("cfgLogin").checked=loginEnabled;document.getElementById("cfgPin").value="";}
+  document.getElementById("cfgLogin").checked=loginEnabled;document.getElementById("cfgPin").value="";
+  renderScoringInputs();}
 function renderCustomList(){const list=document.getElementById("customList");if(!list)return;list.innerHTML="";
   if(!customCategories.length){list.innerHTML=`<div class="cat-empty">Aún no hay retos personalizados.</div>`;return;}
   customCategories.forEach(c=>{const el=document.createElement("div");el.className="catitem";
@@ -795,6 +818,8 @@ function renderRoster(){const list=document.getElementById("rosterList");list.in
     file.addEventListener("change",ev=>{const f=ev.target.files[0];if(f)handlePhotoFile(f,url=>setPlayerPhoto(p.id,url));});
     el.querySelector(".ri-del").addEventListener("click",ev=>{ev.stopPropagation();if(confirm("¿Eliminar a "+p.name+"? Se borrará su temporada permanentemente."))deletePlayer(p.id);});
     el.addEventListener("click",()=>switchPlayer(p.id));list.appendChild(el);});}
+function renderScoringInputs(){const map={llamadas:"scLlamadas",puertas:"scPuertas",dialogs:"scDialogs",orientaciones:"scOrientaciones",visitas:"scVisitas",oportunidades:"scOportunidades",cotizaciones:"scCotizaciones",ventas:"scVentas",daily:"scDaily",correr:"scCorrer",workout:"scWorkout",pasos:"scPasos",dormir:"scDormir",leer:"scLeer",curso:"scCurso"};
+  Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.value=SCORING[k]||0;});}
 function renderEmojiPick(){const wrap=document.getElementById("emojiPick");wrap.innerHTML="";
   EMOJIS.forEach(e=>{const b=document.createElement("button");b.textContent=e;if(e===selectedEmoji)b.className="sel";
     b.addEventListener("click",()=>{selectedEmoji=e;renderEmojiPick();});wrap.appendChild(b);});}
@@ -957,6 +982,8 @@ function bind(){
   document.getElementById("exportCsvBtn").onclick=exportCSV;document.getElementById("exportPdfBtn").onclick=exportPDF;
   document.getElementById("demoBtn").onclick=()=>{if(confirm("¿Cargar datos demo para "+currentPlayer().name+"? Reemplaza su temporada actual."))loadDemo();};
   document.getElementById("resetBtn").onclick=()=>{if(confirm("¿Reiniciar la temporada de "+currentPlayer().name+"? No se puede deshacer.")){gameState=defaultState(currentPlayer().name);save();renderAll();switchTab("scoreboard");toast("🗑️ Temporada reiniciada");}};
+  document.getElementById("saveScoringBtn").onclick=()=>{["llamadas","puertas","dialogs","orientaciones","visitas","oportunidades","cotizaciones","ventas","daily","correr","workout","pasos","dormir","leer","curso"].forEach(k=>{SCORING[k]=+document.getElementById("sc"+k.charAt(0).toUpperCase()+k.slice(1)).value||SCORING[k];});saveScoring();renderAll();toast("💾 Puntuación guardada");};
+  document.getElementById("resetScoringBtn").onclick=()=>{if(confirm("¿Restablecer puntuación a valores por defecto?")){SCORING=Object.assign({},DEFAULT_SCORING);saveScoringLocal();localStorage.removeItem("apexScoring");if(fbOk&&db)db.ref(FB_ROOT+"/scoring").remove().catch(()=>{});renderScoringInputs();renderAll();toast("🔄 Puntuación restablecida");}};
   document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeRoster();}});
 }
 
@@ -967,6 +994,7 @@ async function boot(){
   bind();renderEmojiPick();
   roster=loadRosterLocal()||DEFAULT_ROSTER.slice();
   try{customCategories=JSON.parse(localStorage.getItem("apexCustomCats"))||[];}catch(e){customCategories=[];}
+  const localScoring=loadScoringLocal();if(localScoring)SCORING=Object.assign({},DEFAULT_SCORING,localScoring);
   loginEnabled=localStorage.getItem("apexLoginEnabled")==="1";
   currentPlayerId=localStorage.getItem("apexCurrentPlayer")||roster[0].id;
   if(!roster.find(p=>p.id===currentPlayerId))currentPlayerId=roster[0].id;
@@ -980,6 +1008,7 @@ async function boot(){
   initFirebase();
   if(fbOk&&db){
     const cv2=await once(FB_ROOT+"/customCategories");if(cv2){customCategories=Array.isArray(cv2)?cv2:Object.values(cv2);saveCustomLocal();}
+    const sv=await once(FB_ROOT+"/scoring");if(sv){SCORING=Object.assign({},DEFAULT_SCORING,sv);saveScoringLocal();renderScoringInputs();}
     const lv=await once(FB_ROOT+"/loginEnabled");if(typeof lv==="boolean"){loginEnabled=lv;try{localStorage.setItem("apexLoginEnabled",lv?"1":"0");}catch(e){}}
     const rv=await once(FB_ROOT+"/roster");const rr=rosterFromVal(rv);
     if(rr){roster=mergeRoster(roster,rr);if(!roster.find(p=>p.id===currentPlayerId))currentPlayerId=roster[0].id;saveRosterLocal();}
@@ -988,6 +1017,7 @@ async function boot(){
     renderAll();setSync(true,"Sincronizado ✓");
     if(loginEnabled&&!localStorage.getItem("apexSession")&&!anyOverlayOpen())showLock();
     db.ref(FB_ROOT+"/customCategories").on("value",s=>{const v=s.val();if(v){customCategories=Array.isArray(v)?v:Object.values(v);saveCustomLocal();if(!anyOverlayOpen()){renderCustomList();renderAll();}}});
+    db.ref(FB_ROOT+"/scoring").on("value",s=>{const v=s.val();if(v){SCORING=Object.assign({},DEFAULT_SCORING,v);saveScoringLocal();if(!anyOverlayOpen()){renderScoringInputs();renderAll();}}});
     db.ref(FB_ROOT+"/roster").on("value",s=>{const r=rosterFromVal(s.val());if(r&&!anyOverlayOpen()){roster=r;if(!roster.find(p=>p.id===currentPlayerId))currentPlayerId=roster[0].id;renderHeader();renderTeam();}});
     db.ref(FB_ROOT+"/players").on("value",s=>{const v=s.val()||{};Object.keys(v).forEach(id=>{allStates[id]=hydrate(v[id],(roster.find(p=>p.id===id)||{}).name);});
       if(!anyOverlayOpen()&&allStates[currentPlayerId]&&JSON.stringify(allStates[currentPlayerId])!==JSON.stringify(gameState)){gameState=allStates[currentPlayerId];renderAll();}renderTeam();});
